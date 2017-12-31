@@ -2,17 +2,18 @@
 Parses an SPF record and displays the includes and all IP addresses nested in the record as well as some stats
 
 
-###### Using SPFTree #######
-# Create an instance of SPFTree
+# Using SPFTree
+####### Create an instance of SPFTree #######
 spf = SPFTree()
 
-# Parse the domain
+####### Parse the domain #######
 spf.parse_spf("google.com")
 
-# Print the nested list to the console
+####### Print the nested list to the console #######
 spf.print_spf_tree()
 
-# Output
+####### Output #######
+<pre>
 ######## SPF Lookup Tree for google.com ########
 |domain: google.com
 |        | ---> includes: ['_spf.google.com']
@@ -31,3 +32,4 @@ Stats for google.com:
  IPv6s: 6
  Fail type: SoftFail
  Raw record: v=spf1 include:_spf.google.com ~all
+ </pre>
