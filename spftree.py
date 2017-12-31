@@ -230,10 +230,10 @@ class SPFTree:
 
 ###### Using it #######
 # Create the object
-spf = SPFTree()
+# spf = SPFTree()
 
 # Parse the domain
-spf.parse_spf("google.com")
+# spf.parse_spf("google.com")
 
 # Print the nested list
-spf.print_spf_tree()
+# spf.print_spf_tree()
