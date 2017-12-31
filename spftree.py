@@ -1,9 +1,11 @@
 import subprocess
 import json
+import re
 
 
 class SPFNotFound(Exception):
     pass
+
 
 class SPFTree:
     def __init__(self):
@@ -61,12 +63,17 @@ class SPFTree:
         }
 
         # Look for the spf record and store it
+        spf_found = False
         for result in dig_results:
             if "v=spf" in result:
                 spf_raw = result
                 self.spf_stats["spf_length"] = len(spf_raw)
                 spf_record = result.split(" ")
+                spf_found = True
                 break
+        if not spf_found:
+            # No spf record found
+            return None
 
         # Iter through the spf record and handle special cases first then dynamically process all mechanisms in the RFC
         for spf in spf_record:
@@ -78,13 +85,16 @@ class SPFTree:
                 # IPv6 messes with the splitting so it has to be split manually
                 spf_type = "ip6"
                 spf_value = spf.replace("ip6:", "")
+            else:
+                spf_type = spf
+                spf_value = spf
 
             if "v=spf" in spf:
                 # Ditch the useless version string
-                pass
+                continue
             elif "all" in spf:
                 # Look for the all mechanism to see how the domain handles failures in lookups
-                fail_mechanism = spf.replace("all", "")
+                fail_mechanism = spf.replace("all", "").replace("\\", "")
                 if len(fail_mechanism) > 0:
                     if fail_mechanism == "+":
                         spf_stats["fail"] = "Pass"
@@ -105,6 +115,7 @@ class SPFTree:
                     if include_domain not in self.spf_stats["include"]:
                         self.spf_stats["include"].add(include_domain)
                         spf_stats["include"][include_domain] = self.parse_spf(include_domain)
+
             elif spf_type in self.mechanisms:
                 # Dynamically handle all other mechanisms in the RFC
                 if spf_value not in spf_stats[spf_type]:
@@ -155,10 +166,33 @@ class SPFTree:
 
         # Iterate through the mechanisms for each leaf and print them out nice and formatted
         for mechanism in self.mechanisms:
-            if len(leaf[mechanism]) > 0 and mechanism != "include":
-                msg = "|{spacer}    | ---> {mechanism}: {values}"
-                print(msg.format(spacer="    " * int(depth + 1), mechanism=mechanism, values=leaf[mechanism]))
-            elif len(leaf[mechanism]) > 0 and mechanism == "include":
+            leaf_len = len(leaf[mechanism])
+            # Handle MX records
+            if leaf_len > 0 and mechanism == "mx":
+                for mx in leaf["mx"]:
+                    if mx == "mx":
+                        mx_results = self.do_dig(leaf["domain"], "MX")
+                    else:
+                        mx_results = self.do_dig(mx, "MX")
+                    print("|{}    | ---> {}: {}".format("    " * int(depth + 1), mx, mx_results))
+                    for m in mx_results:
+                        if " " in m:
+                            # Handle MX results in the format "10 somedomain.com"
+                            m = m.split(" ")[1]
+                        if m not in self.spf_stats["mx"]:
+                            self.spf_stats["mx"].add(m)
+                            is_hostname = re.search('[a-zA-Z]', m)
+                            if is_hostname:
+                                ips = self.do_dig(m, "A")
+                                for ip in ips:
+                                    if ip not in self.spf_stats["ip4"]:
+                                        self.spf_stats["ip4"].add(ip)
+                                print("|{}    | ---> {}: {}".format("    " * int(depth + 2), m, ips))
+                            else:
+                                print("|{}    | ---> mx: {}".format("    " * int(depth + 2), m))
+
+            # Handle includes
+            elif leaf_len > 0 and mechanism == "include":
                 # Includes need to recurse over the include object for proper depth tracking and printing
                 print("|{}    | ---> includes: {}".format("    " * int(depth + 1),
                                                           [leaf["include"][x]["domain"] for x in
@@ -167,13 +201,19 @@ class SPFTree:
                     if leaf["include"][include] is not None:
                         self.print_spf_tree(leaf=leaf["include"][include], depth=int(depth + 2))
 
+            # Handle all others that don't need special handling
+            elif leaf_len > 0:
+                msg = "|{spacer}    | ---> {mechanism}: {values}"
+                print(msg.format(spacer="    " * int(depth + 1), mechanism=mechanism, values=leaf[mechanism]))
+
         # If it's the root object print out the stats for the domain
         if depth == 0:
             print("\nStats for {}:\n".format(leaf["domain"]),
                   "DNS Lookups:", self.dns_lookups, "\n",
                   "IPv4s:", len(self.spf_stats["ip4"]), "\n",
                   "IPv6s:", len(self.spf_stats["ip6"]), "\n",
-                  "Fail type:", self.results["fail"]
+                  "Fail type:", self.results["fail"], "\n",
+                  "Raw record:", self.results["spf_text"]
                   )
 
     def spf_json(self):
@@ -193,7 +233,7 @@ class SPFTree:
 spf = SPFTree()
 
 # Parse the domain
-spf.parse_spf("somedomain.com")
+spf.parse_spf("google.com")
 
 # Print the nested list
 spf.print_spf_tree()
