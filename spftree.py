@@ -1,4 +1,5 @@
 import subprocess
+import argparse
 import json
 import re
 
@@ -227,13 +228,22 @@ class SPFTree:
             raise SPFNotFound("No results populated yet! Use SPFTree.parse_spf(domain)")
 
 
+if __name__ == "__main__":
+    # Setup argparse
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, epilog='''
+    Examples:
+    Parse SPF tree: %(prog)s -d google.com
+        ^Parses the SPF tree for google.com and prints the results.\n
+            ''', conflict_handler='resolve')
 
-###### Using it #######
-# Create the object
-# spf = SPFTree()
+    parser.add_argument("-d", "--domain", required=True, help="Domain to parse SPF tree")
+    args = parser.parse_args()
+    domain = args.domain
 
-# Parse the domain
-# spf.parse_spf("google.com")
-
-# Print the nested list
-# spf.print_spf_tree()
+    if domain:
+        # Create the object
+        spf = SPFTree()
+        # Parse the domain
+        spf.parse_spf(domain)
+        # Print the nested list
+        spf.print_spf_tree()
