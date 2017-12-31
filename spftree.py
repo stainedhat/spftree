@@ -231,10 +231,9 @@ class SPFTree:
 if __name__ == "__main__":
     # Setup argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, epilog='''
-    Examples:
-    Parse SPF tree: %(prog)s -d google.com
-        ^Parses the SPF tree for google.com and prints the results.\n
-            ''', conflict_handler='resolve')
+Parse SPF tree from cli: 
+$ python3 %(prog)s -d google.com
+    ''', conflict_handler='resolve')
 
     parser.add_argument("-d", "--domain", required=True, help="Domain to parse SPF tree")
     args = parser.parse_args()
