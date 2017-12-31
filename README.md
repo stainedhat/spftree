@@ -4,12 +4,15 @@ Parses an SPF record and displays the includes and all IP addresses nested in th
 
 # Using SPFTree
 ####### Create an instance of SPFTree #######
+
 spf = SPFTree()
 
 ####### Parse the domain #######
+
 spf.parse_spf("google.com")
 
 ####### Print the nested list to the console #######
+
 spf.print_spf_tree()
 
 ####### Output #######
