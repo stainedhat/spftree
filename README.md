@@ -1,5 +1,6 @@
 # SPFTree
-Parses an SPF record and displays the includes and all IP addresses nested in the record as well as some stats
+Parses an SPF record and displays the includes and all IP addresses nested in the record as well as some stats.
+This is useful for ensuring your SPF records comply with RFC and tracking who is allowed to send mail on your behalf.
 
 
 # Using SPFTree from code
